@@ -1,0 +1,2 @@
+Nople Altar1-truck-Altar2,Altar2-flight-Karoh,Karoh-truck-Nople
+Dria Altar1-truck-Altar2,Altar2-flight-Dria
