@@ -1,0 +1,16 @@
+{
+  "rules": [
+    {
+        "datatype" : "SPO2",
+        "min" : 50,
+        "max" : 60,
+        "triggerCount": 2
+    },
+    {
+        "datatype" : "HeartRate",
+        "min" : 55,
+        "max" : 105,
+        "triggerCount": 5
+    }
+  ]
+}
