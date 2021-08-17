@@ -1,0 +1,10 @@
+user_1,DT001,r
+user_1,DT002,rw
+user_1,DT003,rw
+user_1,DH001,r
+user_1,DH002,rw
+user_1,DH003,r
+user_2,DT004,rw
+user_2,DT005,rw
+user_2,DH004,r
+user_2,DH005,rw
