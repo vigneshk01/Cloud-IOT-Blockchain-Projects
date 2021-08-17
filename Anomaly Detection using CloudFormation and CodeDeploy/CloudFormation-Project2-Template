@@ -1,0 +1,539 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Parameters": {
+        "KeyName": {
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+            "Type": "AWS::EC2::KeyPair::KeyName",
+            "ConstraintDescription": "must be the name of an existing EC2 KeyPair."
+        },
+        "InstanceType": {
+            "Description": "EC2 instance type",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t1.micro",
+                "t2.nano",
+                "t2.micro",
+                "t2.small",
+                "t2.medium",
+                "t2.large"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "SSHLocation": {
+            "Description": "The IP address range that can be used to SSH to the EC2 instances",
+            "Type": "String",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "Default": "0.0.0.0/0",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+        },
+        "EmailID": {
+            "Description": "Please provide your email ID for SNS subscription",
+            "Type": "String",
+            "Default": "vigneshkumar1256@gmail.com"
+        },
+        "S3BucketName": {
+            "Description": "Please provide a unique name for S3 Bucket",
+            "Type": "String",
+            "Default": "cloudformation-project2-bucket"
+        }
+    },
+    "Mappings": {
+        "AWSInstanceType2Arch": {
+            "t1.micro": {
+                "Arch": "HVM64"
+            },
+            "t2.nano": {
+                "Arch": "HVM64"
+            },
+            "t2.micro": {
+                "Arch": "HVM64"
+            },
+            "t2.small": {
+                "Arch": "HVM64"
+            },
+            "t2.medium": {
+                "Arch": "HVM64"
+            },
+            "t2.large": {
+                "Arch": "HVM64"
+            }
+        },
+        "AWSInstanceType2NATArch": {
+            "t1.micro": {
+                "Arch": "NATHVM64"
+            },
+            "t2.nano": {
+                "Arch": "NATHVM64"
+            },
+            "t2.micro": {
+                "Arch": "NATHVM64"
+            },
+            "t2.small": {
+                "Arch": "NATHVM64"
+            },
+            "t2.medium": {
+                "Arch": "NATHVM64"
+            },
+            "t2.large": {
+                "Arch": "NATHVM64"
+            }
+        },
+        "AWSRegionArch2AMI": {
+            "af-south-1": {
+                "HVM64": "ami-064cc455f8a1ef504",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "ap-east-1": {
+                "HVM64": "ami-f85b1989",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "ap-northeast-1": {
+                "HVM64": "ami-0b2c2a754d5b4da22",
+                "HVMG2": "ami-09d0e0e099ecabba2"
+            },
+            "ap-northeast-2": {
+                "HVM64": "ami-0493ab99920f410fc",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "ap-northeast-3": {
+                "HVM64": "ami-01344f6f63a4decc1",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "ap-south-1": {
+                "HVM64": "ami-03cfb5e1fb4fac428",
+                "HVMG2": "ami-0244c1d42815af84a"
+            },
+            "ap-southeast-1": {
+                "HVM64": "ami-0ba35dc9caf73d1c7",
+                "HVMG2": "ami-0e46ce0d6a87dc979"
+            },
+            "ap-southeast-2": {
+                "HVM64": "ami-0ae99b503e8694028",
+                "HVMG2": "ami-0c0ab057a101d8ff2"
+            },
+            "ca-central-1": {
+                "HVM64": "ami-0803e21a2ec22f953",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "cn-north-1": {
+                "HVM64": "ami-07a3f215cc90c889c",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "cn-northwest-1": {
+                "HVM64": "ami-0a3b3b10f714a0ff4",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "eu-central-1": {
+                "HVM64": "ami-0474863011a7d1541",
+                "HVMG2": "ami-0aa1822e3eb913a11"
+            },
+            "eu-north-1": {
+                "HVM64": "ami-0de4b8910494dba0f",
+                "HVMG2": "ami-32d55b4c"
+            },
+            "eu-south-1": {
+                "HVM64": "ami-08427144fe9ebdef6",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "eu-west-1": {
+                "HVM64": "ami-015232c01a82b847b",
+                "HVMG2": "ami-0d5299b1c6112c3c7"
+            },
+            "eu-west-2": {
+                "HVM64": "ami-0765d48d7e15beb93",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "eu-west-3": {
+                "HVM64": "ami-0caf07637eda19d9c",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "me-south-1": {
+                "HVM64": "ami-0744743d80915b497",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "sa-east-1": {
+                "HVM64": "ami-0a52e8a6018e92bb0",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "us-east-1": {
+                "HVM64": "ami-0d5eff06f840b45e9",
+                "HVMG2": "ami-0aeb704d503081ea6"
+            },
+            "us-east-2": {
+                "HVM64": "ami-027cab9a7bf0155df",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "us-west-1": {
+                "HVM64": "ami-0d5eff06f840b45e9",
+                "HVMG2": "ami-0a7fc72dc0e51aa77"
+            },
+            "us-west-2": {
+                "HVM64": "ami-01fee56b22f308154",
+                "HVMG2": "ami-0fe84a5b4563d8f27"
+            }
+        }
+    },
+    "Resources": {
+        "DynamoDB": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+                "AttributeDefinitions": [
+                    {
+                        "AttributeName": "deviceid",
+                        "AttributeType": "S"
+                    },
+                    {
+                        "AttributeName": "timestamp",
+                        "AttributeType": "S"
+                    }
+                ],
+                "KeySchema": [
+                    {
+                        "AttributeName": "deviceid",
+                        "KeyType": "HASH"
+                    },
+                    {
+                        "AttributeName": "timestamp",
+                        "KeyType": "RANGE"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ],
+                "ProvisionedThroughput": {
+                    "ReadCapacityUnits": "1",
+                    "WriteCapacityUnits": "1"
+                },
+                "TableName": "m03p02_anomaly_data"
+            }
+        },
+        "KinesisStream": {
+            "Type": "AWS::Kinesis::Stream",
+            "Properties": {
+                "Name": "m03p02_raw_data_stream",
+                "ShardCount": 1,
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ]
+            }
+        },
+        "SNSTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": "m03p02_anomaly_alerts",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ],
+                "TopicName": "m03p02_anomaly_alerts"
+            }
+        },
+        "SNSSubscription": {
+            "Type": "AWS::SNS::Subscription",
+            "Properties": {
+                "Endpoint": {
+                    "Ref": "EmailID"
+                },
+                "Protocol": "email",
+                "TopicArn": {
+                    "Ref": "SNSTopic"
+                }
+            },
+            "DependsOn": [
+                "SNSTopic"
+            ]
+        },
+        "S3Bucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+                "BucketName": {
+                    "Ref": "S3BucketName"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ]
+            }
+        },
+        "LambdaExecRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/service-role/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/CloudWatchFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonKinesisFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonSNSFullAccess",
+                    "arn:aws:iam::aws:policy/AmazonS3FullAccess",
+                    "arn:aws:iam::aws:policy/AWSLambda_FullAccess"
+                ],
+                "RoleName": "lambda-exec-service-role",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ]
+            }
+        },
+        "LambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Code": {
+                    "ZipFile": {
+                        "Fn::Join": [
+                            "\n",
+                            [
+                                "import base64",
+                                "import json",
+                                "from decimal import Decimal",
+                                "from pprint import pprint",
+                                "import boto3",
+                                "",
+                                "",
+                                "def lambda_handler(event, context):",
+                                "    AWS_REGION = 'us-east-1'",
+                                "    print(event)",
+                                "",
+                                "    dynamodb_res = boto3.resource('dynamodb', region_name=AWS_REGION)",
+                                "    anomaly_table = dynamodb_res.Table('m03p02_anomaly_data')",
+                                "",
+                                "    sns_client = boto3.client('sns', region_name=AWS_REGION)",
+                                "    topic_arn = \"arn:aws:sns:us-east-1:428938486474:m03p02_anomaly_alerts\"",
+                                "",
+                                "    for record in event['Records']:",
+                                "        data_point = base64.b64decode(record['kinesis']['data'])",
+                                "        data_point = str(data_point, 'utf-8')",
+                                "        pprint(data_point, sort_dicts=False)",
+                                "        data_point = json.loads(data_point)",
+                                "",
+                                "        anomaly_type = {}",
+                                "",
+                                "        if data_point[\"value\"] <= (1.1 * float(data_point['lowest_temp'])):",
+                                "            anomaly_type = \"Cold\"",
+                                "        elif data_point[\"value\"] >= (0.9 * float(data_point['highest_point'])):",
+                                "            anomaly_type = \"Hot\"",
+                                "",
+                                "        anomaly_data = {'deviceid': data_point[\"deviceid\"],'anomalyDate': data_point[\"date\"],'timestamp': data_point[\"timestamp\"],'value': data_point[\"value\"],'anomalyType': anomaly_type}",
+                                "        anomaly_data = json.loads(json.dumps(anomaly_data), parse_float=Decimal)",
+                                "",
+                                "        response = anomaly_table.put_item(Item=anomaly_data)",
+                                "        pprint(\"DB Response Data: {0}\".format(response))",
+                                "        sns_client.publish(TopicArn=topic_arn,Message=str(\"Anomaly value = \" + str(anomaly_data['value']) + \" is detected. \" + \"Detected temperature can be categorized as \" + anomaly_data['anomalyType']),Subject=str(anomaly_data['anomalyType'] + \" temperature is detected.\"))",
+                                "    return 1"
+                            ]
+                        ]
+                    }
+                },
+                "Handler": "index.lambda_handler",
+                "Description": "Lambda Function for CloudFormation Anomaly Detection",
+                "FunctionName": "m03p02_lambda_fn",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecRole",
+                        "Arn"
+                    ]
+                },
+                "Runtime": "python3.8",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ]
+            },
+            "DependsOn": [
+                "KinesisStream"
+            ]
+        },
+        "LambdaEventSourceMapping": {
+            "Type": "AWS::Lambda::EventSourceMapping",
+            "Properties": {
+                "BatchSize": 100,
+                "DestinationConfig": {
+                    "OnFailure": {
+                        "Destination": {
+                            "Ref": "SNSTopic"
+                        }
+                    }
+                },
+                "Enabled": true,
+                "EventSourceArn": {
+                    "Fn::GetAtt": [
+                        "KinesisStream",
+                        "Arn"
+                    ]
+                },
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "LambdaFunction",
+                        "Arn"
+                    ]
+                },
+                "MaximumBatchingWindowInSeconds": 5,
+                "StartingPosition": "TRIM_HORIZON"
+            },
+            "DependsOn": [
+                "LambdaFunction"
+            ]
+        },
+        "ServerSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupDescription": "Server security group",
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ]
+            }
+        },
+        "EC2Instance": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "SecurityGroups": [
+                    {
+                        "Ref": "ServerSecurityGroup"
+                    }
+                ],
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "KeyName"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSRegionArch2AMI",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        {
+                            "Fn::FindInMap": [
+                                "AWSInstanceType2Arch",
+                                {
+                                    "Ref": "InstanceType"
+                                },
+                                "Arch"
+                            ]
+                        }
+                    ]
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": "cloudformation-project-2"
+                    }
+                ],
+                "IamInstanceProfile": "EC2ServerMultiRole",
+                "UserData": "IyEvYmluL2Jhc2ggLXhlCgpleGVjID4gPih0ZWUgL3Zhci9sb2cvdXNlci1kYXRhLmxvZ3xsb2dnZXIgLXQgdXNlci1kYXRhIC1zIDI+L2Rldi9jb25zb2xlKSAyPiYxCgp5dW0gdXBkYXRlIC15CmFtYXpvbi1saW51eC1leHRyYXMgaW5zdGFsbCAteSBweXRob24zLjggCnl1bSBpbnN0YWxsIC15IGF3cy1jbGkgcnVieSBqcQp5dW0gaW5zdGFsbCAteSBhbWF6b24tY2xvdWR3YXRjaC1hZ2VudCAKeXVtIGluc3RhbGwgLXkgYXdzY2xpCmFsaWFzIHB5dGhvbj1weXRob24zCnl1bSBpbnN0YWxsIC15IHdnZXQKUkVHSU9OPSQoY3VybCAtcyAxNjkuMjU0LjE2OS4yNTQvbGF0ZXN0L2R5bmFtaWMvaW5zdGFuY2UtaWRlbnRpdHkvZG9jdW1lbnQgfCBqcSAtciAiLnJlZ2lvbiIpCmNkIC90bXAvCndnZXQgaHR0cHM6Ly9hd3MtY29kZWRlcGxveS0ke1JFR0lPTn0uczMuYW1hem9uYXdzLmNvbS9sYXRlc3QvaW5zdGFsbApjaG1vZCAreCAuL2luc3RhbGwKLi9pbnN0YWxsIGF1dG8Kc2VydmljZSBjb2RlZGVwbG95LWFnZW50IHN0YXJ0CmVjaG8gIlVFc0RCQlFBQUFBSUFPOU13bExoQjRFS2tnQUFBRmtCQUFBTEFCd0FZWEJ3YzNCbFl5NTViV3hWVkFrQUE5SlJ0MkRTVWJkZ2RYZ0wKQUFFRTlBRUFBQVQwQVFBQWpZd3hEc0l3REVYM1NyMkRMNUEyRWxzMjJKZzVRVlJjMVNMRWtlMGlqazlMcU5pZ2YveDY3ejFRbERnSAo4SjF2RzlZQWlmTDhiSnVSRW1wb0cxam1RSG1XQVFQMDlRQzRvaHJsYUc5M2VTZm0yNGFmY0dUQmMxYUxLWVhOV0RPSmg0K2lnMUF4CjdZdWdvMHAyT24xWkFLTTc4bXdCRHQ3WC96Z2F5czRzcSszdmxwS29GaTRXeGY2MFl5bE9WKzVuK0FWUVN3TUVDZ0FBQUFBQW9XTEQKVXB1Ui9xeURCQUFBZ3dRQUFBa0FIQUJtYVd4bGN5NTZhWEJWVkFrQUF5N0p1R0F1eWJoZ2RYZ0xBQUVFOUFFQUFBVDBBUUFBVUVzRApCQW9BQUFBQUFBWmF3MUlBQUFBQUFBQUFBQUFBQUFBSUFCd0FjMlZ5ZG1salpTOVZWQWtBQS91NXVHRFNVYmRnZFhnTEFBRUU5QUVBCkFBVDBBUUFBVUVzREJBb0FBQUFBQU85TXdsTHpOV21DRGdBQUFBNEFBQUFZQUJ3QWMyVnlkbWxqWlM5eVpYRjFhWEpsYldWdWRITXUKZEhoMFZWUUpBQVBTVWJkZzBsRzNZSFY0Q3dBQkJQUUJBQUFFOUFFQUFHSnZkRzh6UFQweExqRTNMamcxVUVzREJCUUFBQUFJQUFaYQp3MUplNGIvM2VRSUFBSEFGQUFBVEFCd0FjMlZ5ZG1salpTOXlZWGRmWkdGMFlTNXdlVlZVQ1FBRCs3bTRZUHU1dUdCMWVBc0FBUVQwCkFRQUFCUFFCQUFDTlUxMXIyekFVZlRmNFB3ajNJUTUxVGRMQ1JnZDVLRXZIU2xrcFM5N0dNSXAxRTJ1MVBwRGtabUgwdis5S1Z0ekYKN2NQOFlLU3JvM3ZQdlRxSEM2Mk1JNHc2Y0Z4QW12QSs4TXNxT1d3TWxVeUpZV3ZyQnRpd083bTJVVTVkcFVtYTNOODkzSzd1VnRYeQpabjFUcmRiZmIyKytrUVhKeE94S3p5NHJRL2NWbHFTVmRRYW95TkxraVV1dzNGWU5sbW9Cb1NGVFdiY2NwTXNuOFhoU0VBTTdybVFsCnFZQkYxdGtMb05aZHpMT3BMNW9tWitSTEoydUhDT0lVMFoxdGZHdVVjTnczUUdJYTBwY3RpS2JHOFlCK2dnTlIyeEdBNElyQk02K0IKTTUrZHdSWnpibHB1bTJVbnhHR0pxZk5XS2YxWmRkSk5QNlVKd1UrQXRYVG5lL2p6MGtlZWFkdjUvYlpWMU9YOU5FdXBqS0R0TXpVYwpaNTlmZnl6STVYUjZpamVZbHVWaFY1QjVQUFR6dG80S2pRQ2ttUitmcmh3V1V1M3pZNnBJNXNka3VEYjVHUzhPa1RIVVQ4d2ROQVRrClpBMUNnNkd1TXpBWkFRT3pnQXFyY1pvNHVRRElsbC9YMVd3Mno5N1dnbGRHaXRIRG1FMnI5a2l6Y2hDcFgzOFlBUnErYTA0UTg5bDgKL0JKZXppWHJoTFo1RE1ZeVowUWJqZ283alJxd1drbnJiNTRLczlTZHF3elV5ckI4RlRUeTRJWDRqdG9MNHRXeGlIa0w4bmlVMmowYwpGc00wWXIyZXc3RnExSEtZQmpJNGVlQXlSSE9FQkJkMkxSZy9QTDh1aDBoNDJ0TC9paUNYMHJZQS9wbFJHWWdlVG4yYVFiNTRNT3N0CjlJaTI0WElYSEJQY2cxYWlwRlp5eTNlb0FqWnlTWmttUGYvTWQ5eWJEbStNcklSS013NVliOVI5dzlIa2E5TkI5SXd6aDdqeTM5QkkKaWVaSDdXMXM3cG1mazRFczJxRjRZOFdDdkpxeE9CckFmNjg5bnFNNjNxdGpPcG5IQy9DN0J1MElQdE5HVWNQdVBBUFRhZmNQdncxMgo5T1Q3K0krK0crcVhTdXUrOTc5UVN3RUNIZ01LQUFBQUFBQUdXc05TQUFBQUFBQUFBQUFBQUFBQUNBQVlBQUFBQUFBQUFCQUE3VUVBCkFBQUFjMlZ5ZG1salpTOVZWQVVBQS91NXVHQjFlQXNBQVFUMEFRQUFCUFFCQUFCUVN3RUNIZ01LQUFBQUFBRHZUTUpTOHpWcGdnNEEKQUFBT0FBQUFHQUFZQUFBQUFBQUJBQUFBcElGQ0FBQUFjMlZ5ZG1salpTOXlaWEYxYVhKbGJXVnVkSE11ZEhoMFZWUUZBQVBTVWJkZwpkWGdMQUFFRTlBRUFBQVQwQVFBQVVFc0JBaDRERkFBQUFBZ0FCbHJEVWw3aHYvZDVBZ0FBY0FVQUFCTUFHQUFBQUFBQUFRQUFBS1NCCm9nQUFBSE5sY25acFkyVXZjbUYzWDJSaGRHRXVjSGxWVkFVQUEvdTV1R0IxZUFzQUFRVDBBUUFBQlBRQkFBQlFTd1VHQUFBQUFBTUEKQXdBRkFRQUFhQU1BQUFBQVVFc0RCQW9BQUFBQUFJdGl3MUlBQUFBQUFBQUFBQUFBQUFBSUFCd0FjMk55YVhCMGN5OVZWQWtBQXdiSgp1R0RTVWJkZ2RYZ0xBQUVFOUFFQUFBVDBBUUFBVUVzREJCUUFBQUFJQUNkZ3cxSzRCbTJXZndBQUFLUUFBQUFXQUJ3QWMyTnlhWEIwCmN5OXdjbVV0YVc1emRHRnNiQzV6YUZWVUNRQURpc1M0WUlyRXVHQjFlQXNBQVFUMEFRQUFCUFFCQUFCRmpzMEt3akFRaE8vN0ZHc0YKMGNNMkJ5Kyt6dFlzVFNEWmhQeElLejY4RVFyZVp1WWJtRG1mek9MVkxGd2RYR0h2RVh1MjNBUnBCNDc4VGtyQmE5OUl0bGE0b3RmYQpPSVNCTWUvTkpiM1BEemdVVXNUczg3OURQYStGcmZ4U2tLZExPT1VpZEhBU3RSUGM4SFBCSm1PUTBieTRtSkJXMDZzVUdqZDRIZzYrClVFc0RCQlFBQUFBSUFJdGl3MUlObzJLZ2dRRUFBUG9DQUFBWEFCd0FjMk55YVhCMGN5OXdiM04wTFdsdWMzUmhiR3d1YzJoVlZBa0EKQXdiSnVHQUd5YmhnZFhnTEFBRUU5QUVBQUFUMEFRQUFiWkxOVHVzd0VJWFh6Rk5NVFhRRkM5Y0wxbDFVcVVNakZWTFNGdDByaENLVAp1TVFpallQakZvcDRlTnlmOUNiQTBwNXp2cGs1OW5tUFBhbVNQWWs2aHd1QVdiU0lmWjRFNFlRUGlCRnZTU2FzNkZkYkFqRy9hNjdsCjYxb1p1WktscmZ2MjNSS1k4ZmcrOUYycGxtYWpVa2xnR00vRFlPalBCMlNwQ2xuM1AxUkZISDBSQk9IZkFjbGtWZWp0RGtDRlNYTzEKY1k1eGRNT1Q2WEErSGhDbUs4dFNuY21Eam9wbnAyUXRrOUhhZFlWSjVBOG55VFRtZTZoM0lqQnZ4S2VUNk44TnY1MG4xM0cwbUNiaApxSE81T3g2R2NaaG0xbU4zcjQxbFhsTWw0RWNqL3J2bXVEODU1WGRVblJ4TzhqL1lRNVkvSlUzQ084d0IyT1F4bHFLd2VTcU1uRFVCCkJ6R2ZqWk1XcUczcHNOUVNIN0NITk1QZlFQZ0lOcGNsbksxZU1tWHdwd0tXQ3FCNnkyQmR1a2RFcXRIckJMWURkK0lBU0ozTW9OZksKQWp2ak5ZSm0rbTlWcUxZMjErVVYwaFZXcnFVcWF5dUtZbS9wcmcweXpUV1NTdGVXSGxWVWxobUJTL3o4ZzFaS3BBTFpSaGhXNkdlMgpkcitUN3Yrek95RjhBVkJMQXdRVUFBQUFDQUJ3WU1OU2lRTXJqYVFBQUFBQkFRQUFGQUFjQUhOamNtbHdkSE12WVhCd0xYTjBZWEowCkxuTm9WVlFKQUFNVHhiaGdFOFc0WUhWNEN3QUJCUFFCQUFBRTlBRUFBSDJPd1FxQ1FCQ0c3L3NVMHlaU0J4dW9hd29oZ3AwS3JhNHkKNnBDQzZMS3VodERESitiQkxoMy8rYjl2WnRZclRNc2FVMm9Mc1JHY0ZRMUlVc3BwRFdramhZZ3Y5OGdQWEtucGxlUmthS2NHS2VJZwplcHo5SUxtZWJxRXJNV1NxVEpHUjVwaDFYMllzWjIwR3JDV1AxcmNiZDAvWHJBVXExR0NLcGo3OERNRUR6TG5IdXFzcTJIdGdtTUVoCndKNDBWczBUdTVhMU03MDJKamd1WUZ0czRXMy9GOFFIVUVzREJCUUFBQUFJQUNwZ3cxSzRCbTJXZndBQUFLUUFBQUFKQUJ3QWMyTnkKYVhCMGN5OHhWVlFKQUFPUXhMaGdrTVM0WUhWNEN3QUJCQUFBQUFBRUFBQUFBRVdPelFyQ01CQ0U3L3NVYXdYUnd6WUhMNzdPMWl4TgpJTm1FL0VnclByd1JDdDVtNWh1WU9aL000dFVzWEIxY1llOFJlN2JjQkdrSGp2eE9Tc0ZyMzBpMlZyaWkxOW80aElFeDc4MGx2YzhQCk9CUlN4T3p6djBNOXI0V3QvRktRcDBzNDVTSjBjQksxRTl6d2M4RW1ZNURSdkxpWWtGYlRxeFFhTjNnZURyNVFTd01FRkFBQUFBZ0EKODEzQ1VuYnNXTWxxQUFBQWRRQUFBQk1BSEFCelkzSnBjSFJ6TDJGd2NDMXpkRzl3TG5Ob1ZWUUpBQVBhYjdkZzJtKzNZSFY0Q3dBQgpCUFFCQUFBRTlBRUFBQldMelE1Rk1CUUc5K2NwUG5XM1RjWEtsZkFDSGtFcy9MU2NhQTVSckR5ODJrMW1NbWxpQmhZejlHRWgybm1xCmZOZ2M5QW5OWlpFVkdiRkRDL1dMU1NHcG9CUTZPaGNyU05Hdzk0aU00eEpobWJFZjIyaERvUFVMK28vdlFsNmJ5ZDVHcnVpZUJ5VTUKZmdGUVN3RUNIZ01VQUFBQUNBRHZUTUpTNFFlQkNwSUFBQUJaQVFBQUN3QVlBQUFBQUFBQkFBQUFwSUVBQUFBQVlYQndjM0JsWXk1NQpiV3hWVkFVQUE5SlJ0MkIxZUFzQUFRVDBBUUFBQlBRQkFBQlFTd0VDSGdNS0FBQUFBQUNoWXNOU201SCtySU1FQUFDREJBQUFDUUFZCkFBQUFBQUFBQUFBQXRJSFhBQUFBWm1sc1pYTXVlbWx3VlZRRkFBTXV5YmhnZFhnTEFBRUU5QUVBQUFUMEFRQUFVRXNCQWg0RENnQUEKQUFBQWkyTERVZ0FBQUFBQUFBQUFBQUFBQUFnQUdBQUFBQUFBQUFBUUFPMUJuUVVBQUhOamNtbHdkSE12VlZRRkFBTUd5YmhnZFhnTApBQUVFOUFFQUFBVDBBUUFBVUVzQkFoNERGQUFBQUFnQUoyRERVcmdHYlpaL0FBQUFwQUFBQUJZQUdBQUFBQUFBQVFBQUFPMkIzd1VBCkFITmpjbWx3ZEhNdmNISmxMV2x1YzNSaGJHd3VjMmhWVkFVQUE0ckV1R0IxZUFzQUFRVDBBUUFBQlBRQkFBQlFTd0VDSGdNVUFBQUEKQ0FDTFlzTlNEYU5pb0lFQkFBRDZBZ0FBRndBWUFBQUFBQUFCQUFBQTdZR3VCZ0FBYzJOeWFYQjBjeTl3YjNOMExXbHVjM1JoYkd3dQpjMmhWVkFVQUF3Ykp1R0IxZUFzQUFRVDBBUUFBQlBRQkFBQlFTd0VDSGdNVUFBQUFDQUJ3WU1OU2lRTXJqYVFBQUFBQkFRQUFGQUFZCkFBQUFBQUFCQUFBQTdZR0FDQUFBYzJOeWFYQjBjeTloY0hBdGMzUmhjblF1YzJoVlZBVUFBeFBGdUdCMWVBc0FBUVQwQVFBQUJQUUIKQUFCUVN3RUNIZ01VQUFBQUNBQXFZTU5TdUFadGxuOEFBQUNrQUFBQUNRQVlBQUFBQUFBQkFBQUFwSUZ5Q1FBQWMyTnlhWEIwY3k4eApWVlFGQUFPUXhMaGdkWGdMQUFFRUFBQUFBQVFBQUFBQVVFc0JBaDRERkFBQUFBZ0E4MTNDVW5ic1dNbHFBQUFBZFFBQUFCTUFHQUFBCkFBQUFBUUFBQU8yQk5Bb0FBSE5qY21sd2RITXZZWEJ3TFhOMGIzQXVjMmhWVkFVQUE5cHZ0MkIxZUFzQUFRVDBBUUFBQlBRQkFBQlEKU3dVR0FBQUFBQWdBQ0FDcEFnQUE2d29BQUFBQSIgPiBjb250ZW50LnR4dApiYXNlNjQgLWQgY29udGVudC50eHQgPiBiYXNlLnppcAphd3MgczMgY3AgYmFzZS56aXAgczM6Ly9jbG91ZGZvcm1hdGlvbi1wcm9qZWN0Mi1idWNrZXQvCmF3cyBjb25maWd1cmUgc2V0IGRlZmF1bHQucmVnaW9uIHVzLWVhc3QtMQ=="
+            },
+            "DependsOn": [
+                "S3Bucket"
+            ]
+        }
+    },
+    "Outputs": {
+        "InstanceId": {
+            "Description": "InstanceId of the newly created EC2 instance",
+            "Value": {
+                "Ref": "EC2Instance"
+            }
+        },
+        "AZ": {
+            "Description": "Availability Zone of the newly created EC2 instance",
+            "Value": {
+                "Fn::GetAtt": [
+                    "EC2Instance",
+                    "AvailabilityZone"
+                ]
+            }
+        },
+        "PublicDNS": {
+            "Description": "Public DNSName of the newly created EC2 instance",
+            "Value": {
+                "Fn::GetAtt": [
+                    "EC2Instance",
+                    "PublicDnsName"
+                ]
+            }
+        },
+        "PublicIP": {
+            "Description": "Public IP address of the newly created EC2 instance",
+            "Value": {
+                "Fn::GetAtt": [
+                    "EC2Instance",
+                    "PublicIp"
+                ]
+            }
+        },
+        "DynamoDBName": {
+            "Description": "DynamoDB Table Name of the newly created instance",
+            "Value": {
+                "Ref": "DynamoDB"
+            }
+        },
+        "SNSTopicName": {
+            "Description": "Name of the newly created SNS Topic",
+            "Value": {
+                "Ref": "SNSTopic"
+            }
+        },
+        "S3BucketName": {
+            "Description": "Name of the newly created S3 Bucket",
+            "Value": {
+                "Fn::GetAtt": [
+                    "S3Bucket",
+                    "Arn"
+                ]
+            }
+        },
+        "KinesisStreamName": {
+            "Description": "Name of the newly created Kinesis Stream",
+            "Value": {
+                "Fn::GetAtt": [
+                    "KinesisStream",
+                    "Arn"
+                ]
+            }
+        }
+    }
+}
